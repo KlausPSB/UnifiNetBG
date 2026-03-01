@@ -16,6 +16,7 @@ declare(strict_types=1);
         	$this->RegisterPropertyInteger( 'Timer', '0' );
         	$this->RegisterTimer( 'Collect Data', 0, "UNIFIDV_Send(\$_IPS['TARGET'],'getDeviceData','');" );
 			$this->RegisterPropertyBoolean("MACAnzeigen", 0);
+			$this->RegisterPropertyBoolean("ConnectedClientsAnzeigen", 0);
 			$this->RegisterPropertyBoolean("IDAnzeigen", 0);
 			$this->RegisterPropertyBoolean("PortsAnzeigen", 0);
 			$this->RegisterPropertyBoolean("RadiosAnzeigen", 0);
@@ -39,7 +40,7 @@ declare(strict_types=1);
 			$this->MaintainVariable( 'DeviceIP', $this->Translate( 'Device IP' ), 3, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'USAGE_TYPE'=> 0 ,'ICON'=> 'circle-info'], $vpos++, 1 );
 			$this->MaintainVariable( 'Firmware', $this->Translate( 'Firmware' ), 3, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'USAGE_TYPE'=> 0 ,'ICON'=> 'circle-info'], $vpos++, 1 );
 			$this->MaintainVariable( 'FirmwareUpdate', $this->Translate( 'FirmwareUpdate' ), 0, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'ICON'=> 'circle-info', 'OPTIONS'=>'[{"ColorDisplay":1692672,"Value":false,"Caption":"Aktuell","IconValue":"","IconActive":false,"ColorActive":true,"ColorValue":1692672,"Color":-1},{"ColorDisplay":16711680,"Value":true,"Caption":"Update Verfügbar","IconValue":"","IconActive":false,"ColorActive":true,"ColorValue":16711680,"Color":-1}]' ], $vpos++, 1 );
-			
+						
 			$variablenID=@$this->GetIDForIdent("UptimeSec");
 			if ($variablenID==false) {
 				$variablenID = $this->RegisterVariableInteger('UptimeSec', $this->Translate( 'UptimeSec' ), [ 'PRESENTATION' => VARIABLE_PRESENTATION_DURATION, 'FORMAT'=> 2],$vpos++);
@@ -56,6 +57,7 @@ declare(strict_types=1);
 			$this->MaintainVariable( 'CPU', $this->Translate( 'CPU Utilization' ), 2, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'DIGITS'=> 2 , 'SUFFIX'=> ' %' , 'ICON'=> 'laptop-binary'], $vpos++, $this->ReadPropertyBoolean("Utilization") );
 			$this->MaintainVariable( 'Memory', $this->Translate( 'Memory Utilization' ), 2, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'DIGITS'=> 2 , 'SUFFIX'=> ' %' , 'ICON'=> 'laptop-binary'], $vpos++, $this->ReadPropertyBoolean("Utilization") );
 			$this->MaintainVariable( 'MAC', $this->Translate( 'Device MAC' ), 3, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'USAGE_TYPE'=> 0 ,'ICON'=> 'circle-info'], $vpos++, $this->ReadPropertyBoolean("MACAnzeigen") );
+			$this->MaintainVariable( 'ConnectedClients', $this->Translate( 'Connected Clients' ), 1, [ 'PRESENTATION' => VARIABLE_PRESENTATION_VALUE_PRESENTATION, 'USAGE_TYPE'=> 0 ,'ICON'=> 'circle-info'], $vpos++, $this->ReadPropertyBoolean("ConnectedClientsAnzeigen") );
 		
 
 
@@ -90,6 +92,14 @@ declare(strict_types=1);
 						$deviceData=json_encode(unserialize($data));
 						$this->UpdateFormField("ID", "options", $deviceData);
 						$this->SetBuffer("devices", $deviceData);
+						break;
+
+					case "getConnectedClients":
+						$JSONData=json_decode(unserialize($data),true);
+						if ( is_array( $JSONData ) && isset( $JSONData ) ) {
+							$this->SendDebug("UnifiGW", json_encode($JSONData), 0);
+							$this->SetValue( 'ConnectedClients', $JSONData['connectedClients']);
+						}
 						break;
 					case "getDeviceStats":
 						$JSONData=json_decode(unserialize($data),true);
@@ -203,7 +213,8 @@ declare(strict_types=1);
 								}
 							}
 						}
-						$this->Send('getDeviceStats','');				
+						$this->Send('getDeviceStats','');
+						$this->Send('getConnectedClients','');
 						//IPS_LogMessage('UNIFICL-'.$this->InstanceID,var_dump($array));						
 						break;
 					case "getDeviceName":
@@ -266,6 +277,7 @@ declare(strict_types=1);
 			unset($arrayOptions);
 			$arrayOptions[] = array( 'type' => 'CheckBox', 'name' => 'MACAnzeigen','width' => '220px', 'caption' => $this->Translate('Show MAC') );
 			$arrayOptions[] = array( 'type' => 'CheckBox', 'name' => 'IDAnzeigen', 'width' => '220px','caption' => $this->Translate('Show ID') );
+			$arrayOptions[] = array( 'type' => 'CheckBox', 'name' => 'ConnectedClientsAnzeigen', 'width' => '220px','caption' => $this->Translate('Show Connected Clients') );
 			$arrayElements[] = array( 'type' => 'RowLayout',  'items' => $arrayOptions );
 			$arrayElements[] = array( 'type' => 'CheckBox', 'name' => 'Utilization', 'caption' => $this->Translate('Utilization Statistics auslesen (CPU + Memory)') );
 
@@ -277,6 +289,7 @@ declare(strict_types=1);
 			unset($arrayOptions);
 			$arrayOptions[] = array( 'type' => 'Button', 'label' => $this->Translate('Get Statistics Data'),'width' => '220px', 'onClick' => 'UNIFIDV_Send($id,"getDeviceStats","");' );
 			$arrayOptions[] = array( 'type' => 'Button', 'label' => $this->Translate('Restart'), 'width' => '220px','onClick' => 'UNIFIDV_Send($id,"setRestartDevice","");' );
+			$arrayOptions[] = array( 'type' => 'Button', 'label' => $this->Translate('Get Connected Clients'), 'width' => '220px','onClick' => 'UNIFIDV_Send($id,"getConnectedClients","");' );
 			$arrayActions[] = array( 'type' => 'RowLayout',  'items' => $arrayOptions );
 			return JSON_encode( array( 'status' => $arrayStatus, 'elements' => $arrayElements, 'actions' => $arrayActions ) );
 	    }

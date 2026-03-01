@@ -121,6 +121,10 @@ class UnifiGateway extends IPSModule
                     return serialize($jsonString);
 
                     break;
+                case "getConnectedClients":                    
+                    $jsonString = $this->getConnectedClients(IPS_GetProperty( $data->InstanceID, 'ID' ));
+                    return serialize($jsonString);
+                    break;
                 case "getDeviceName":
                     $this->SendDebug("UnifiGW", json_encode($data), 0);
                     if (isset($data->Param1)){
@@ -568,7 +572,6 @@ class UnifiGateway extends IPSModule
     public function updateNetworkSettings(string $networkID, string $jsonPayload):string {
         $site = $this->ReadPropertyString( 'Site' );
         $siteID = $this->getSiteID( $site );
-        //https://192.168.178.1/proxy/network/integration/v1/sites/{siteId}/wifi/broadcasts/{wifiBroadcastId}
         $this->SendDebug("UnifiGW", "updateNetworkSettings: " . $jsonPayload, 0);
         $this->SendDebug("UnifiGW", "updateNetworkSettings: " . '/'.$siteID.'/networks/'.$networkID.'/', 0);
         $JSONData=$this->getApiDataPut( '/'.$siteID.'/networks/'.$networkID, $jsonPayload );
@@ -578,7 +581,6 @@ class UnifiGateway extends IPSModule
     public function updateWifiSettings(string $wifiID, string $jsonPayload):string {
         $site = $this->ReadPropertyString( 'Site' );
         $siteID = $this->getSiteID( $site );
-        //https://192.168.178.1/proxy/network/integration/v1/sites/{siteId}/wifi/broadcasts/{wifiBroadcastId}
         $this->SendDebug("UnifiGW", "updateWifiSettings: " . $jsonPayload, 0);
         $this->SendDebug("UnifiGW", "updateWifiSettings: " . '/'.$siteID.'/wifi/broadcasts/'.$wifiID.'/', 0);
         $JSONData=$this->getApiDataPut( '/'.$siteID.'/wifi/broadcasts/'.$wifiID, $jsonPayload );
@@ -650,6 +652,23 @@ class UnifiGateway extends IPSModule
         $JSONData = $this->getApiData( '/'.$siteID.'/devices/'.$deviceID.'/statistics/latest' );
         return json_encode($JSONData);        
     }
+
+    public function getConnectedClients(string $deviceID) {
+        $site = $this->ReadPropertyString( 'Site' );
+        $siteID = $this->getSiteID( $site );
+        $JSONData = $this->getApiData( '/'.$siteID.'/clients?limit=500' );
+        $count = 0;
+        $data=$JSONData['data'];
+        if (is_array($data)) {
+            foreach ($data as $item) {            
+                if (isset($item['uplinkDeviceId']) && $item['uplinkDeviceId'] === $deviceID) {
+                    $count++;
+               }
+            }
+        }
+        return json_encode(['connectedClients' => $count]);
+    }
+
 
     public function getDeviceData(string $deviceID):string {
             $site = $this->ReadPropertyString( 'Site' );
