@@ -96,10 +96,12 @@ declare(strict_types=1);
 
 					case "getConnectedClients":
 						$JSONData=json_decode(unserialize($data),true);
-						if ( is_array( $JSONData ) && isset( $JSONData ) ) {
-							$this->SendDebug("UnifiGW", json_encode($JSONData), 0);
-							$this->SetValue( 'ConnectedClients', $JSONData['connectedClients']);
-						}
+						if ($this->ReadPropertyBoolean("ConnectedClientsAnzeigen")) {
+							if ( is_array( $JSONData ) && isset( $JSONData ) ) {
+								$this->SendDebug("UnifiGW", json_encode($JSONData), 0);
+								$this->SetValue( 'ConnectedClients', $JSONData['connectedClients']);
+							}
+						}						
 						break;
 					case "getDeviceStats":
 						$JSONData=json_decode(unserialize($data),true);
